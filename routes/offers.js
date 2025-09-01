@@ -223,9 +223,15 @@ router.delete("/offers/:id", isAuthenticated, async (request, response) => {
 
 router.get("/offers", async (request, response) => {
   try {
-    const { title, priceMin, priceMax, sort, page = 1 } = request.query;
-
     const MAX_PER_PAGE = 10;
+    const {
+      title,
+      priceMin,
+      priceMax,
+      sort,
+      page = 1,
+      limit = MAX_PER_PAGE,
+    } = request.query;
 
     if (
       (title !== undefined && ("string" !== typeof title || title === "")) ||
@@ -234,20 +240,27 @@ router.get("/offers", async (request, response) => {
       (priceMax !== undefined &&
         (isNaN(priceMax) ||
           parseFloat(priceMax) < 0 ||
-          (priceMin !== undefined && priceMax < priceMin))) ||
+          (priceMin !== undefined &&
+            parseFloat(priceMax) < parseFloat(priceMin)))) ||
       (sort !== undefined && !["price-desc", "price-asc"].includes(sort)) ||
       (page !== undefined &&
         (isNaN(page) ||
           !Number.isInteger(parseFloat(page)) ||
-          0 >= parseInt(page)))
+          0 >= parseInt(page))) ||
+      (limit !== undefined &&
+        (isNaN(limit) ||
+          !Number.isInteger(parseFloat(limit)) ||
+          0 >= parseInt(limit)))
     ) {
-      response.status(400).response({ message: "Invalid request" });
+      response.status(400).json({ message: "Invalid request" });
+
+      return;
     }
 
     const offers = await Offer.find(getFilter(request.query))
       .sort(getSort(sort))
-      .limit(MAX_PER_PAGE)
-      .skip(MAX_PER_PAGE * (parseInt(page) - 1));
+      .limit(parseInt(limit))
+      .skip(parseInt(limit) * (parseInt(page) - 1));
 
     response.status(200).json(offers);
   } catch (error) {
@@ -283,15 +296,15 @@ const getFilter = (params) => {
   const { title, priceMin, priceMax } = params;
 
   if (title !== undefined) {
-    filter.title = new RegExp(title, "i");
+    filter.product_name = new RegExp(title, "i");
   }
 
   if (priceMin !== undefined && priceMax !== undefined) {
-    filter.price = { $gte: priceMin, $lte: priceMax };
+    filter.product_price = { $gte: priceMin, $lte: priceMax };
   } else if (priceMin !== undefined) {
-    filter.price = { $gte: priceMin };
+    filter.product_price = { $gte: priceMin };
   } else if (priceMax !== undefined) {
-    filter.price = { $lte: priceMax };
+    filter.product_price = { $lte: priceMax };
   }
 
   return filter;
@@ -299,9 +312,9 @@ const getFilter = (params) => {
 
 const getSort = (sort) => {
   if ("price-desc" === sort) {
-    return { price: "desc" };
+    return { product_price: "desc" };
   } else if ("price-asc" === sort) {
-    return { price: "asc" };
+    return { product_price: "asc" };
   }
 
   return null;
