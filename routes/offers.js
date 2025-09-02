@@ -27,7 +27,7 @@ router.post(
     try {
       const { title, description, price, condition, city, brand, size, color } =
         request.body;
-      const { picture } = request.files;
+      const picture = request.files?.picture ?? null;
 
       if (
         "string" !== typeof title ||
@@ -88,7 +88,8 @@ router.post(
 
       response.status(201).json(offer);
     } catch (error) {
-      response.status(500).json(error);
+      console.log(error);
+      response.status(500).json({ message: error.message });
     }
   }
 );
@@ -179,7 +180,8 @@ router.put(
 
       response.status(200).json(updatedOffer);
     } catch (error) {
-      response.status(500).json(error);
+      console.log(error);
+      response.status(500).json({ message: error.message });
     }
   }
 );
@@ -217,7 +219,8 @@ router.delete("/offers/:id", isAuthenticated, async (request, response) => {
 
     response.status(200).json({ message: "Offer successfully deleted" });
   } catch (error) {
-    response.status(500).json(error);
+    console.log(error);
+    response.status(500).json({ message: error.message });
   }
 });
 
@@ -265,7 +268,7 @@ router.get("/offers", async (request, response) => {
     response.status(200).json(offers);
   } catch (error) {
     console.log(error);
-    response.status(500).json(error);
+    response.status(500).json({ message: error.message });
   }
 });
 
